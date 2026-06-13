@@ -1,4 +1,4 @@
-# Phase 2A: Runtime Image 定義
+# Phase 2: Runtime Image 定義
 
 ## 目的
 
