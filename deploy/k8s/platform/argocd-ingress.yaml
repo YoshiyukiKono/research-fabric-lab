@@ -3,12 +3,15 @@ kind: Ingress
 metadata:
   name: argocd-server
   namespace: argocd
+
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: websecure
     traefik.ingress.kubernetes.io/router.tls: "true"
     traefik.ingress.kubernetes.io/service.serversscheme: https
+
 spec:
   ingressClassName: traefik
+
   rules:
     - host: argocd.lab.local
       http:
