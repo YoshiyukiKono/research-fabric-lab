@@ -2,7 +2,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: artifact-upload-example
-  namespace: research-experiments
+  namespace: research
 spec:
   backoffLimit: 1
   template:
@@ -47,7 +47,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: artifact-upload-example-script
-  namespace: research-experiments
+  namespace: research
 data:
   upload.py: |
     import os
