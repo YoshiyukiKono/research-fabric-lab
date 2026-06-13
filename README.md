@@ -36,3 +36,32 @@ scripts/                   Helper scripts
 - Argo CD watches this repository.
 - External LLM API is used; no local Ollama/GPU requirement at the beginning.
 - Experiment execution starts with simple Kubernetes Jobs.
+
+## Releases
+
+### v0.1.0-bootstrap
+
+Research Fabric Lab の初期ブートストラップ完了版。
+
+このリリースでは、Harvester 上の Rancher/K3s 環境に Argo CD を導入し、GitHub リポジトリから研究ワークロードを同期・実行する最小構成を確認した。
+
+主な成果:
+
+- Harvester 上の Rancher 管理クラスタを利用
+- Argo CD 導入
+- App of Apps 構成
+- `research` / `research-system` namespace 作成
+- `Experiment` / `AgentTask` CRD 作成
+- サンプル Experiment / AgentTask 同期
+- Kubernetes Job 実行
+- 結果JSON出力
+- GitHub Actions による Runtime Image build
+- GHCR への `quantum-python-base` publish
+- Runtime Image を使った Job 実行
+- `https://argocd.lab.local` による Argo CD UI公開
+
+次の目標:
+
+- `agent-lab-02` を Workload Cluster として構成する
+- Rancher へ Import する
+- Research Job を Workload Cluster 側で実行する
