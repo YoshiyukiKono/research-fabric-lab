@@ -80,6 +80,16 @@ ubuntu@rancher-mgmt-02:~$ kubectl logs -n research job/ising-python-result-001
 {"status": "completed", "timestamp": "2026-06-13T19:24:55.836994Z", "experiment": {"name": "ising-netket-001", "engine": "python-placeholder", "model": "transverse-field-ising", "L": 16, "h_values": [0.2, 0.5, 1.0]}, "results": [{"h": 0.2, "estimated_energy": -16.316862443496913}, {"h": 0.5, "estimated_energy": -17.88854381999832}, {"h": 1.0, "estimated_energy": -22.627416997969522}]}
 ubuntu@rancher-mgmt-02:~$
 ```
+
+## Runtime Image 化
+
+本実験では GitHub Actions を利用して
+quantum-python-base Runtime Image を GHCR へ公開した。
+
+詳細は以下を参照。
+
+docs/operations/github-actions-and-ghcr.md
+
 experiments/ising-netket-001/jobs/job-python-result.yamlを編集
 
 ```yaml
