@@ -5,13 +5,13 @@ metadata:
   namespace: argocd
 spec:
   project: default
-  destination:
-    server: https://kubernetes.default.svc
-    namespace: argocd
   source:
     repoURL: https://github.com/YoshiyukiKono/research-fabric-lab.git
     targetRevision: main
-    path: deploy/k8s/storage
+    path: research-platform/storage/minio
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
   syncPolicy:
     automated:
       prune: false
