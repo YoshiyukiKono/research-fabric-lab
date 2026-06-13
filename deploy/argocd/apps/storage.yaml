@@ -8,7 +8,7 @@ spec:
   source:
     repoURL: https://github.com/YoshiyukiKono/research-fabric-lab.git
     targetRevision: main
-    path: research-platform/storage/minio
+    path: deploy/k8s/storage/minio
   destination:
     server: https://kubernetes.default.svc
     namespace: argocd
