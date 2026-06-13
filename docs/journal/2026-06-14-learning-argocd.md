@@ -346,6 +346,119 @@ Ingress と Backend Service の関係も理解が深まった。
 
 ---
 
+
+
+## OutOfSync の原因調査
+
+research-experiments Application が OutOfSync になった。
+
+Argo CD UI の DIFF を確認すると、
+
+以下の Job が表示された。
+
+- ising-netket-001
+- ising-python-result-001
+
+DIFF では、
+
+左側に Job 定義全体が表示され、
+右側は空白となっていた。
+
+これは、
+
+「Cluster に存在するが、Git 上の Desired State に存在しない」
+
+ことを意味していた。
+
+### 原因
+
+調査の結果、
+
+以下のファイル名にタイポが存在した。
+
+```text
+job-bootstrap-placeholder.yam
+````
+
+本来は
+
+```text
+job-bootstrap-placeholder.yaml
+```
+
+である。
+
+Argo CD は `.yaml` を Kubernetes Manifest として解釈するが、
+
+`.yam`
+
+は同期対象として認識されない。
+
+その結果、
+
+Argo CD の Desired State から Job が消えた状態となった。
+
+一方、
+
+クラスタ上には以前作成された Job が残っていたため、
+
+```text
+Git
+≠
+Cluster
+```
+
+となり OutOfSync が発生した。
+
+### 修正
+
+ファイル名を修正。
+
+```text
+job-bootstrap-placeholder.yam
+↓
+job-bootstrap-placeholder.yaml
+```
+
+その後、
+
+```bash
+kubectl annotate application research-experiments -n argocd \
+  argocd.argoproj.io/refresh=hard --overwrite
+```
+
+を実行。
+
+OutOfSync が解消された。
+
+### 学び
+
+Argo CD は
+
+「Git にファイルが存在するか」
+
+ではなく、
+
+「Git から生成される Kubernetes Manifest が何であるか」
+
+を管理している。
+
+ファイル名の拡張子やディレクトリ構造の変化は、
+
+Desired State の変化として扱われる。
+
+
+ArgoCDはファイルを見ているのではなく、生成されたManifestを見ている。
+
+
+
+
+
+
+
+
+
+
 # Argo CD は Kubernetes の学習装置でもある
 
 今回強く感じたのは、
