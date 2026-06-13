@@ -1,0 +1,44 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ising-python-result-001
+  namespace: research
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: experiment
+          image: python:3.12-slim
+          command:
+            - python
+            - -c
+            - |
+              import json
+              import math
+              import datetime
+
+              experiment = {
+                  "name": "ising-netket-001",
+                  "engine": "python-placeholder",
+                  "model": "transverse-field-ising",
+                  "L": 16,
+                  "h_values": [0.2, 0.5, 1.0],
+              }
+
+              results = []
+              for h in experiment["h_values"]:
+                  estimated_energy = -experiment["L"] * math.sqrt(1 + h * h)
+                  results.append({
+                      "h": h,
+                      "estimated_energy": estimated_energy
+                  })
+
+              output = {
+                  "status": "completed",
+                  "timestamp": datetime.datetime.utcnow().isoformat() + "Z",
+                  "experiment": experiment,
+                  "results": results
+              }
+
+              print(json.dumps(output, ensure_ascii=False))
