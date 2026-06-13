@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: ising-python-result-001
+  name: ising-python-runtime-001
   namespace: research
 spec:
   template:
