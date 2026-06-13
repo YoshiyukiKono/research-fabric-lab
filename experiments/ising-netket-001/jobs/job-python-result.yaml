@@ -9,7 +9,7 @@ spec:
       restartPolicy: Never
       containers:
         - name: experiment
-          image: python:3.12-slim
+          image: ghcr.io/yoshiyukikono/research-fabric-lab/quantum-python-base:480943889aca4677d70a5c6ad54e6c629e7562e1
           command:
             - python
             - -c
