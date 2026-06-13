@@ -1,0 +1,82 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: artifact-upload-example
+  namespace: research-experiments
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: upload
+          image: python:3.11-slim
+          command:
+            - /bin/sh
+            - -c
+            - |
+              pip install minio
+              cat > /tmp/result.json <<'EOF'
+              {
+                "experiment_id": "experiment-001",
+                "status": "completed",
+                "message": "hello artifact storage"
+              }
+              EOF
+              python /app/upload.py
+          env:
+            - name: MINIO_ENDPOINT
+              value: minio.storage.svc.cluster.local:9000
+            - name: MINIO_ACCESS_KEY
+              value: minio
+            - name: MINIO_SECRET_KEY
+              value: minio12345
+            - name: MINIO_BUCKET
+              value: research-artifacts
+            - name: EXPERIMENT_ID
+              value: experiment-001
+          volumeMounts:
+            - name: upload-script
+              mountPath: /app
+      volumes:
+        - name: upload-script
+          configMap:
+            name: artifact-upload-example-script
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: artifact-upload-example-script
+  namespace: research-experiments
+data:
+  upload.py: |
+    import os
+    from minio import Minio
+    from minio.error import S3Error
+
+    endpoint = os.environ["MINIO_ENDPOINT"]
+    access_key = os.environ["MINIO_ACCESS_KEY"]
+    secret_key = os.environ["MINIO_SECRET_KEY"]
+    bucket = os.environ["MINIO_BUCKET"]
+    experiment_id = os.environ["EXPERIMENT_ID"]
+
+    client = Minio(
+        endpoint,
+        access_key=access_key,
+        secret_key=secret_key,
+        secure=False,
+    )
+
+    if not client.bucket_exists(bucket):
+        client.make_bucket(bucket)
+
+    object_name = f"{experiment_id}/result.json"
+
+    client.fput_object(
+        bucket,
+        object_name,
+        "/tmp/result.json",
+        content_type="application/json",
+    )
+
+    print(f"uploaded: s3://{bucket}/{object_name}")

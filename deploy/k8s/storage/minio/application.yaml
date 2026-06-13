@@ -1,0 +1,63 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: research-platform-minio
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: minio
+    app.kubernetes.io/part-of: research-fabric-lab
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: storage
+  source:
+    repoURL: https://charts.min.io/
+    chart: minio
+    targetRevision: 5.4.0
+    helm:
+      releaseName: minio
+      values: |
+        mode: standalone
+
+        rootUser: minio
+        rootPassword: minio12345
+
+        replicas: 1
+
+        persistence:
+          enabled: true
+          size: 100Gi
+          storageClass: longhorn
+
+        resources:
+          requests:
+            memory: 512Mi
+            cpu: 250m
+
+        buckets:
+          - name: research-artifacts
+            policy: none
+            purge: false
+
+        ingress:
+          enabled: true
+          ingressClassName: traefik
+          hosts:
+            - minio.lab.local
+          path: /
+          pathType: Prefix
+
+        consoleIngress:
+          enabled: true
+          ingressClassName: traefik
+          hosts:
+            - console.minio.lab.local
+          path: /
+          pathType: Prefix
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false
