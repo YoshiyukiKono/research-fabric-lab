@@ -207,3 +207,5 @@ grafana.lab.local
 も同様の方式を採用する。
 
 
+## TODO:
+ArgoCD自身の設定をGitOps管理へ移行
