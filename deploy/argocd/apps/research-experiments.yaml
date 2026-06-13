@@ -6,7 +6,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/REPLACE_ME/research-fabric-lab.git
+    repoURL: https://github.com/YoshiyukiKono/research-fabric-lab.git
     targetRevision: main
     path: experiments
     directory:
