@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: research-crds
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/YoshiyukiKono/research-fabric-lab.git
+    targetRevision: main
+    path: deploy/k8s/crds
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
