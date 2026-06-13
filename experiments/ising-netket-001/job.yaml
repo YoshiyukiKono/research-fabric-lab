@@ -1,0 +1,27 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ising-netket-001
+  namespace: research
+  labels:
+    research.fabric/experiment: ising-netket-001
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: runner
+          image: python:3.11-slim
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              mkdir -p /outputs/ising-netket-001
+              echo '{"status":"placeholder","engine":"netket"}' > /outputs/ising-netket-001/metrics.json
+              cat /outputs/ising-netket-001/metrics.json
+          resources:
+            requests:
+              cpu: "1"
+              memory: 1Gi
+            limits:
+              cpu: "2"
+              memory: 4Gi

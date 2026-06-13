@@ -1,0 +1,26 @@
+apiVersion: research.fabric/v1alpha1
+kind: Experiment
+metadata:
+  name: qaoa-vrp-001
+spec:
+  domain: qubo-optimization
+  engine: tytan
+  task: vehicle-routing-qubo
+  model:
+    warehouses: 1
+    customers: 5
+  parameters:
+    objective: minimize-distance
+  runtime:
+    accelerator: cpu
+    image: python:3.11-slim
+    resources:
+      requests:
+        cpu: "1"
+        memory: 1Gi
+      limits:
+        cpu: "2"
+        memory: 4Gi
+  output:
+    report: markdown
+    artifactPath: /outputs/qaoa-vrp-001

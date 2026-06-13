@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: research-experiments
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/REPLACE_ME/research-fabric-lab.git
+    targetRevision: main
+    path: experiments
+    directory:
+      recurse: true
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: research
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true

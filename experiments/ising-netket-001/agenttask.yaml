@@ -1,0 +1,18 @@
+apiVersion: research.fabric/v1alpha1
+kind: AgentTask
+metadata:
+  name: ising-netket-001-report
+spec:
+  role: research-reporter
+  input:
+    experimentRef: ising-netket-001
+    artifacts:
+      - metrics.json
+      - plots/
+  instructions:
+    - Explain the physical meaning of the result for a beginner.
+    - Compare h=0.2, h=0.5, and h=1.0.
+    - Identify convergence issues if any.
+  output:
+    format: markdown
+    path: reports/ising-netket-001.md

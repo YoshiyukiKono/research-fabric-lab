@@ -1,0 +1,45 @@
+#cloud-config
+hostname: research-fabric-vm
+manage_etc_hosts: true
+
+users:
+  - name: ubuntu
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    shell: /bin/bash
+    groups: users, admin
+    lock_passwd: false
+    # Replace this password hash before use, or use ssh_authorized_keys only.
+    passwd: "$6$replace-me$replace-me"
+    ssh_authorized_keys:
+      - ssh-rsa REPLACE_WITH_YOUR_PUBLIC_KEY
+
+package_update: true
+package_upgrade: false
+packages:
+  - curl
+  - git
+  - jq
+  - vim
+  - ca-certificates
+  - qemu-guest-agent
+
+write_files:
+  - path: /etc/rancher/k3s/config.yaml
+    permissions: '0644'
+    content: |
+      write-kubeconfig-mode: "0644"
+      disable:
+        - traefik
+      node-label:
+        - "research.fabric/node-role=single-node-lab"
+
+runcmd:
+  - systemctl enable --now qemu-guest-agent
+  - curl -sfL https://get.k3s.io | sh -
+  - mkdir -p /home/ubuntu/.kube
+  - cp /etc/rancher/k3s/k3s.yaml /home/ubuntu/.kube/config
+  - chown -R ubuntu:ubuntu /home/ubuntu/.kube
+  - kubectl create namespace argocd || true
+  - echo "K3s installation completed" > /var/log/research-fabric-init.log
+
+final_message: "research-fabric-vm cloud-init completed."

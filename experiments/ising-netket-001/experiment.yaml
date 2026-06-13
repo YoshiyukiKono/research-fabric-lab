@@ -1,0 +1,27 @@
+apiVersion: research.fabric/v1alpha1
+kind: Experiment
+metadata:
+  name: ising-netket-001
+spec:
+  domain: quantum-simulation
+  engine: netket
+  task: ground-state-estimation
+  model:
+    name: transverse-field-ising
+    lattice: chain
+    size: 16
+  sweep:
+    h: [0.2, 0.5, 1.0]
+  runtime:
+    accelerator: cpu
+    image: python:3.11-slim
+    resources:
+      requests:
+        cpu: "1"
+        memory: 1Gi
+      limits:
+        cpu: "2"
+        memory: 4Gi
+  output:
+    report: markdown
+    artifactPath: /outputs/ising-netket-001

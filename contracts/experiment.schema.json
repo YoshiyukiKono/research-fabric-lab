@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Research Fabric Experiment",
+  "type": "object",
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": { "const": "research.fabric/v1alpha1" },
+    "kind": { "const": "Experiment" },
+    "metadata": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string" }
+      }
+    },
+    "spec": {
+      "type": "object",
+      "required": ["domain", "engine", "task", "runtime", "output"],
+      "properties": {
+        "domain": { "type": "string" },
+        "engine": { "type": "string" },
+        "task": { "type": "string" },
+        "model": { "type": "object" },
+        "parameters": { "type": "object" },
+        "sweep": { "type": "object" },
+        "runtime": { "type": "object" },
+        "output": { "type": "object" }
+      }
+    }
+  }
+}

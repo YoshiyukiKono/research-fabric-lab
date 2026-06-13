@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Research Fabric AgentTask",
+  "type": "object",
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": { "const": "research.fabric/v1alpha1" },
+    "kind": { "const": "AgentTask" },
+    "metadata": {
+      "type": "object",
+      "required": ["name"],
+      "properties": { "name": { "type": "string" } }
+    },
+    "spec": {
+      "type": "object",
+      "required": ["role", "input", "instructions", "output"],
+      "properties": {
+        "role": { "type": "string" },
+        "input": { "type": "object" },
+        "instructions": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "output": { "type": "object" }
+      }
+    }
+  }
+}
