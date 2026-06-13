@@ -1,21 +1,24 @@
-# Documentation Index
+# Research Fabric Lab Documentation
 
-This directory records the design and build history of Research Fabric Lab.
+Research Fabric Lab は、量子・HPC・最適化・AI Agent の研究ワークロードを GitOps と Kubernetes で扱うための実験基盤です。
 
-## Recommended structure
+この `docs/` ディレクトリでは、プロジェクトの思想、アーキテクチャ、初期構築手順、運用メモ、ADR、ロードマップを管理します。
 
-- `architecture/` — target architecture and design overview.
-- `harvester/` — Harvester resource design and VM placement.
-- `cloud-init/` — VM bootstrap and cloud-init notes.
-- `gitops/` — Argo CD, app-of-apps, repository layout, and sync behavior.
-- `operations/` — chronological build logs and troubleshooting notes.
-- `adr/` — Architecture Decision Records.
-- `roadmap/` — near-term and future implementation plan.
+## 構成
 
-Start with:
+```text
+docs/
+├─ architecture/   # 全体構想とターゲットアーキテクチャ
+├─ bootstrap/      # 初期構築手順と作業記録
+├─ concepts/       # Experiment / AgentTask などの概念整理
+├─ operations/     # Argo CD や Kubernetes 運用メモ
+├─ adr/            # Architecture Decision Record
+└─ roadmap/        # 今後の開発フェーズ
+```
 
-1. `architecture/00-overview.md`
-2. `harvester/00-resource-plan.md`
-3. `gitops/00-argocd-bootstrap.md`
-4. `operations/2026-06-13-argocd-bootstrap-on-harvester.md`
-5. `roadmap/00-next-steps.md`
+## 最初に読む文書
+
+- [Research Fabric Lab の構想](architecture/00-vision.md)
+- [Harvester 上への初期構築](bootstrap/01-harvester-rancher-argocd.md)
+- [GitOps モデル](architecture/02-gitops-model.md)
+- [ADR-0001: Argo CD を採用する](adr/0001-use-argocd.md)
