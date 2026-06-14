@@ -1,0 +1,113 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ising-1d-demo
+  namespace: research
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: experiment
+          image: python:3.11-slim
+          command:
+            - /bin/sh
+            - -c
+            - |
+              pip install numpy minio
+
+              python - <<'PY'
+              import json
+              import os
+              import numpy as np
+              from minio import Minio
+
+              n = 4
+              J = 1.0
+              h = 0.7
+
+              sx = np.array([[0, 1], [1, 0]], dtype=float)
+              sz = np.array([[1, 0], [0, -1]], dtype=float)
+              I = np.eye(2)
+
+              def kron_all(ops):
+                  out = ops[0]
+                  for op in ops[1:]:
+                      out = np.kron(out, op)
+                  return out
+
+              H = np.zeros((2**n, 2**n), dtype=float)
+
+              for i in range(n):
+                  ops = [I] * n
+                  ops[i] = sz
+                  ops[(i + 1) % n] = sz
+                  H += -J * kron_all(ops)
+
+              for i in range(n):
+                  ops = [I] * n
+                  ops[i] = sx
+                  H += -h * kron_all(ops)
+
+              vals, vecs = np.linalg.eigh(H)
+              ground = vecs[:, 0]
+
+              magnetization_z = []
+              for i in range(n):
+                  ops = [I] * n
+                  ops[i] = sz
+                  magnetization_z.append(float(np.vdot(ground, kron_all(ops) @ ground).real))
+
+              ops = [I] * n
+              ops[0] = sz
+              ops[1] = sz
+              zz_01 = float(np.vdot(ground, kron_all(ops) @ ground).real)
+
+              result = {
+                  "model": "1d transverse-field quantum ising",
+                  "sites": n,
+                  "coupling_J": J,
+                  "field_h": h,
+                  "boundary": "periodic",
+                  "ground_energy": float(vals[0]),
+                  "energy_gap": float(vals[1] - vals[0]),
+                  "magnetization_z": magnetization_z,
+                  "zz_correlation_0_1": zz_01,
+              }
+
+              with open("/tmp/result.json", "w") as f:
+                  json.dump(result, f, indent=2)
+
+              client = Minio(
+                  os.environ["MINIO_ENDPOINT"],
+                  access_key=os.environ["MINIO_ACCESS_KEY"],
+                  secret_key=os.environ["MINIO_SECRET_KEY"],
+                  secure=False,
+              )
+
+              bucket = "research-artifacts"
+              object_name = "ising-1d-demo/result.json"
+
+              client.fput_object(
+                  bucket,
+                  object_name,
+                  "/tmp/result.json",
+                  content_type="application/json",
+              )
+
+              print(f"uploaded: s3://{bucket}/{object_name}")
+              PY
+          env:
+            - name: MINIO_ENDPOINT
+              value: minio.lab.local:80
+            - name: MINIO_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-credentials
+                  key: MINIO_ACCESS_KEY
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-credentials
+                  key: MINIO_SECRET_KEY
