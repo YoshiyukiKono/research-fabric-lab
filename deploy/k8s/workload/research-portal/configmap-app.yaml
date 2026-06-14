@@ -8,9 +8,16 @@ metadata:
     app.kubernetes.io/part-of: research-fabric-lab
 data:
   app.py: |
-    import streamlit as st
+    import os
     import json
     from datetime import datetime, timezone
+
+    import streamlit as st
+
+    try:
+        from openai import OpenAI
+    except Exception:
+        OpenAI = None
 
     st.set_page_config(
         page_title="Research Fabric Lab",
@@ -18,17 +25,102 @@ data:
         layout="wide",
     )
 
+    def default_spec(experiment_name: str, runtime_image: str, command: str, artifact_path: str) -> dict:
+        return {
+            "apiVersion": "research.fabric/v1alpha1",
+            "kind": "Experiment",
+            "metadata": {
+                "name": experiment_name,
+                "namespace": "research",
+            },
+            "spec": {
+                "runtimeImage": runtime_image,
+                "command": command,
+                "artifact": {
+                    "storage": "minio",
+                    "path": artifact_path,
+                },
+            },
+        }
+
+    def generate_experiment_spec(goal: str, model: str):
+        if OpenAI is None:
+            return None, "openai Python package is not available in this container."
+
+        if not os.getenv("OPENAI_API_KEY"):
+            return None, "OPENAI_API_KEY is not set. Create the Kubernetes Secret `openai-api-key`."
+
+        client = OpenAI()
+
+        system_prompt = """
+    You are an assistant for Research Fabric Lab.
+
+    Generate a Kubernetes-style Experiment spec as JSON only.
+    Do not include markdown fences.
+    Do not include explanations.
+
+    The schema is:
+
+    {
+      "apiVersion": "research.fabric/v1alpha1",
+      "kind": "Experiment",
+      "metadata": {
+        "name": "string",
+        "namespace": "research"
+      },
+      "spec": {
+        "runtimeImage": "string",
+        "command": "string",
+        "artifact": {
+          "storage": "minio",
+          "path": "research-artifacts/<experiment-name>/result.json"
+        }
+      }
+    }
+
+    Rules:
+    - Use namespace "research".
+    - Use storage "minio".
+    - Prefer runtime image "ghcr.io/yoshiyukikono/quantum-python-base:latest".
+    - The command should be simple, executable, and safe for a Python runtime.
+    - The command should write a /tmp/result.json file when reasonable.
+    - The experiment name must be DNS-safe lowercase.
+    """
+
+        user_prompt = f"""
+    Research goal:
+
+    {goal}
+
+    Return only JSON.
+    """
+
+        response = client.responses.create(
+            model=model,
+            input=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+        )
+
+        text = response.output_text.strip()
+
+        try:
+            return json.loads(text), None
+        except json.JSONDecodeError as exc:
+            return None, f"Failed to parse model response as JSON: {exc}\n\nRaw response:\n{text}"
+
     st.title("🧪 Research Fabric Lab")
-    st.subheader("v0.3.0-preview: Workload Cluster Research Portal")
+    st.subheader("v0.3.0-preview: AI-assisted Research Portal")
 
     st.markdown(
-        '''
-        This is a minimal Streamlit Research Portal running on the workload cluster.
+        """
+        This Streamlit portal runs on the workload cluster.
 
-        Current goal:
+        Current flow:
 
-        `Management Cluster → Workload Cluster → Research UI`
-        '''
+        `Research Goal → OpenAI API → Experiment Spec Preview`
+        """
     )
 
     col1, col2, col3 = st.columns(3)
@@ -47,58 +139,83 @@ data:
 
     st.divider()
 
-    st.header("Experiment Draft")
+    st.header("AI Experiment Assistant")
+
+    api_key_status = "configured" if os.getenv("OPENAI_API_KEY") else "missing"
+    model = os.getenv("OPENAI_MODEL", "gpt-5.5")
+
+    st.caption(f"OpenAI API key: {api_key_status}")
+    st.caption(f"Model: {model}")
+
+    research_goal = st.text_area(
+        "Research goal",
+        "1次元量子Ising模型の小さなデモ実験を作り、result.jsonを生成したい。",
+        height=120,
+    )
+
+    if "generated_spec" not in st.session_state:
+        st.session_state.generated_spec = None
+
+    if st.button("Generate Experiment Spec with OpenAI"):
+        with st.spinner("Generating experiment spec..."):
+            spec, error = generate_experiment_spec(research_goal, model)
+
+        if error:
+            st.error(error)
+        else:
+            st.session_state.generated_spec = spec
+            st.success("Experiment spec generated.")
+
+    st.divider()
+
+    st.header("Manual Experiment Draft")
 
     experiment_name = st.text_input("Experiment name", "ising-demo-001")
     runtime_image = st.text_input("Runtime image", "ghcr.io/yoshiyukikono/quantum-python-base:latest")
     command = st.text_area(
         "Command",
-        "python - <<'PY'\nprint('hello research fabric')\nPY",
-        height=120,
+        "python - <<'PY'\nimport json\nresult = {'message': 'hello research fabric'}\nopen('/tmp/result.json', 'w').write(json.dumps(result))\nprint(result)\nPY",
+        height=160,
     )
-
     artifact_path = st.text_input(
         "Artifact path",
         f"research-artifacts/{experiment_name}/result.json",
     )
 
-    spec = {
-        "apiVersion": "research.fabric/v1alpha1",
-        "kind": "Experiment",
-        "metadata": {
-            "name": experiment_name,
-            "namespace": "research",
-        },
-        "spec": {
-            "runtimeImage": runtime_image,
-            "command": command,
-            "artifact": {
-                "storage": "minio",
-                "path": artifact_path,
-            },
-        },
-    }
+    manual_spec = default_spec(experiment_name, runtime_image, command, artifact_path)
 
-    st.subheader("Generated Experiment Spec Preview")
-    st.json(spec)
+    tab1, tab2 = st.tabs(["Generated by AI", "Manual Draft"])
 
-    st.download_button(
-        label="Download experiment.json",
-        data=json.dumps(spec, indent=2, ensure_ascii=False),
-        file_name=f"{experiment_name}.json",
-        mime="application/json",
-    )
+    with tab1:
+        if st.session_state.generated_spec:
+            st.json(st.session_state.generated_spec)
+            st.download_button(
+                label="Download generated-experiment.json",
+                data=json.dumps(st.session_state.generated_spec, indent=2, ensure_ascii=False),
+                file_name="generated-experiment.json",
+                mime="application/json",
+            )
+        else:
+            st.info("No generated spec yet.")
+
+    with tab2:
+        st.json(manual_spec)
+        st.download_button(
+            label="Download manual-experiment.json",
+            data=json.dumps(manual_spec, indent=2, ensure_ascii=False),
+            file_name=f"{experiment_name}.json",
+            mime="application/json",
+        )
 
     st.divider()
 
     st.header("Platform Notes")
-
     st.markdown(
-        '''
-        - This portal currently does not submit jobs.
-        - This portal currently does not call the OpenAI API.
-        - The next step is to connect this UI to Experiment CR / Operator / GitHub PR workflow.
-        '''
+        """
+        - This portal generates Experiment specs.
+        - It does not submit jobs yet.
+        - The next step is GitHub PR generation or Experiment Operator integration.
+        """
     )
 
     st.caption(f"Rendered at {datetime.now(timezone.utc).isoformat()}")

@@ -7,3 +7,9 @@ resources:
   - deployment.yaml
   - service.yaml
   - ingress.yaml
+
+# Do not include secret-example.yaml in resources.
+# Create the real Secret manually:
+#
+# kubectl --context agent-lab -n research create secret generic openai-api-key \
+#   --from-literal=OPENAI_API_KEY='sk-...'

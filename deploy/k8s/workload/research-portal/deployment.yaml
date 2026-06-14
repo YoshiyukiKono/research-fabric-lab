@@ -25,12 +25,21 @@ spec:
             - /bin/sh
             - -c
             - |
-              pip install streamlit
+              pip install streamlit openai
               streamlit run /app/app.py \
                 --server.address=0.0.0.0 \
                 --server.port=8501 \
                 --server.headless=true \
                 --browser.gatherUsageStats=false
+          env:
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: openai-api-key
+                  key: OPENAI_API_KEY
+                  optional: true
+            - name: OPENAI_MODEL
+              value: gpt-5.5
           ports:
             - name: http
               containerPort: 8501
