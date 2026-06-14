@@ -91,3 +91,28 @@ Quantum Cluster
 Research Fabric Lab は単一クラスタではなく、
 
 Research Fabric そのものを目指す。
+
+
+
+# Research Portal
+
+URL
+
+http://portal.agent.lab.local
+
+Technology
+
+- Streamlit
+- Kubernetes Deployment
+- Service
+- Traefik Ingress
+
+Purpose
+
+Research UI for Experiment Definition
+
+## Current Workloads
+
+### Research Fabric Lab
+
+- research-portal
