@@ -119,7 +119,7 @@ ubuntu@rancher-mgmt-02:~/research-fabric-lab$
 ```bash
 ubuntu@rancher-mgmt-02:~/research-fabric-lab$ kubectl --context agent-lab delete job -n research ising-1d-demo
 job.batch "ising-1d-demo" deleted from research namespace
-ubuntu@rancher-mgmt-02:~/research-fabric-lab$ kubectl --context agent-lab apply -f deploy/k8s/experiments/ising-1d-demo/job.yaml
+ubuntu@rancher-mgmt-02:~/research-fabric-lab$ kubectl --context agent-lab apply -f deploy/k8s/jobs/ising-1d-demo/job.yaml
 job.batch/ising-1d-demo created
 ubuntu@rancher-mgmt-02:~/research-fabric-lab$ kubectl --context agent-lab get pods -n research
 NAME                               READY   STATUS      RESTARTS   AGE
