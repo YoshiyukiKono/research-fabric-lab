@@ -116,3 +116,11 @@ Research UI for Experiment Definition
 ### Research Fabric Lab
 
 - research-portal
+
+## Existing Cluster Context
+
+agent-lab-02 は既存のK3sクラスタである。
+
+Research Fabric Lab では、このクラスタ上に `research` namespace を作成し、Research Portal を配置する。
+
+既存の他namespaceや別プロジェクトのワークロードには依存しない。
