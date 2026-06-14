@@ -1,0 +1,23 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: research-portal
+  namespace: research
+  labels:
+    app.kubernetes.io/name: research-portal
+    app.kubernetes.io/part-of: research-fabric-lab
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: portal.agent.lab.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: research-portal
+                port:
+                  number: 80

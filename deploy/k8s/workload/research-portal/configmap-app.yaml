@@ -1,0 +1,104 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: research-portal-app
+  namespace: research
+  labels:
+    app.kubernetes.io/name: research-portal
+    app.kubernetes.io/part-of: research-fabric-lab
+data:
+  app.py: |
+    import streamlit as st
+    import json
+    from datetime import datetime, timezone
+
+    st.set_page_config(
+        page_title="Research Fabric Lab",
+        page_icon="🧪",
+        layout="wide",
+    )
+
+    st.title("🧪 Research Fabric Lab")
+    st.subheader("v0.3.0-preview: Workload Cluster Research Portal")
+
+    st.markdown(
+        '''
+        This is a minimal Streamlit Research Portal running on the workload cluster.
+
+        Current goal:
+
+        `Management Cluster → Workload Cluster → Research UI`
+        '''
+    )
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.metric("Management Cluster", "rancher-mgmt-02")
+        st.caption("Rancher / ArgoCD / MinIO")
+
+    with col2:
+        st.metric("Workload Cluster", "agent-lab-02")
+        st.caption("K3s / Runtime Jobs / Research Portal")
+
+    with col3:
+        st.metric("Artifact Storage", "MinIO")
+        st.caption("research-artifacts bucket")
+
+    st.divider()
+
+    st.header("Experiment Draft")
+
+    experiment_name = st.text_input("Experiment name", "ising-demo-001")
+    runtime_image = st.text_input("Runtime image", "ghcr.io/yoshiyukikono/quantum-python-base:latest")
+    command = st.text_area(
+        "Command",
+        "python - <<'PY'\nprint('hello research fabric')\nPY",
+        height=120,
+    )
+
+    artifact_path = st.text_input(
+        "Artifact path",
+        f"research-artifacts/{experiment_name}/result.json",
+    )
+
+    spec = {
+        "apiVersion": "research.fabric/v1alpha1",
+        "kind": "Experiment",
+        "metadata": {
+            "name": experiment_name,
+            "namespace": "research",
+        },
+        "spec": {
+            "runtimeImage": runtime_image,
+            "command": command,
+            "artifact": {
+                "storage": "minio",
+                "path": artifact_path,
+            },
+        },
+    }
+
+    st.subheader("Generated Experiment Spec Preview")
+    st.json(spec)
+
+    st.download_button(
+        label="Download experiment.json",
+        data=json.dumps(spec, indent=2, ensure_ascii=False),
+        file_name=f"{experiment_name}.json",
+        mime="application/json",
+    )
+
+    st.divider()
+
+    st.header("Platform Notes")
+
+    st.markdown(
+        '''
+        - This portal currently does not submit jobs.
+        - This portal currently does not call the OpenAI API.
+        - The next step is to connect this UI to Experiment CR / Operator / GitHub PR workflow.
+        '''
+    )
+
+    st.caption(f"Rendered at {datetime.now(timezone.utc).isoformat()}")
