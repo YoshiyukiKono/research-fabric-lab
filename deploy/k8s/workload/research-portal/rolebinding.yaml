@@ -1,0 +1,13 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: research-portal-job-runner
+  namespace: research
+subjects:
+  - kind: ServiceAccount
+    name: research-portal
+    namespace: research
+roleRef:
+  kind: Role
+  name: research-portal-job-runner
+  apiGroup: rbac.authorization.k8s.io

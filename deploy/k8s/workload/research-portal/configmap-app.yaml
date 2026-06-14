@@ -10,6 +10,7 @@ data:
   app.py: |
     import os
     import json
+    import uuid
     from datetime import datetime, timezone
 
     import streamlit as st
@@ -18,6 +19,12 @@ data:
         from openai import OpenAI
     except Exception:
         OpenAI = None
+
+    try:
+        from kubernetes import client, config
+    except Exception:
+        client = None
+        config = None
 
     st.set_page_config(
         page_title="Research Fabric Lab",
@@ -50,7 +57,7 @@ data:
         if not os.getenv("OPENAI_API_KEY"):
             return None, "OPENAI_API_KEY is not set. Create the Kubernetes Secret `openai-api-key`."
 
-        client = OpenAI()
+        client_openai = OpenAI()
 
         system_prompt = """
     You are an assistant for Research Fabric Lab.
@@ -95,7 +102,7 @@ data:
     Return only JSON.
     """
 
-        response = client.responses.create(
+        response = client_openai.responses.create(
             model=model,
             input=[
                 {"role": "system", "content": system_prompt},
@@ -110,18 +117,174 @@ data:
         except json.JSONDecodeError as exc:
             return None, f"Failed to parse model response as JSON: {exc}\n\nRaw response:\n{text}"
 
-    st.title("🧪 Research Fabric Lab")
-    st.subheader("v0.3.0-preview: AI-assisted Research Portal")
+    def create_ising_job():
+        if client is None or config is None:
+            return None, "kubernetes Python package is not available in this container."
 
-    st.markdown(
-        """
-        This Streamlit portal runs on the workload cluster.
+        run_id = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S") + "-" + uuid.uuid4().hex[:6]
+        job_name = f"ising-1d-demo-{run_id}".lower()
+        object_name = f"ising-1d-demo/runs/{run_id}/result.json"
 
-        Current flow:
+        experiment_script = r'''
+    import json
+    import os
+    import numpy as np
+    from minio import Minio
 
-        `Research Goal → OpenAI API → Experiment Spec Preview`
-        """
+    n = 4
+    J = 1.0
+    h = 0.7
+
+    sx = np.array([[0, 1], [1, 0]], dtype=float)
+    sz = np.array([[1, 0], [0, -1]], dtype=float)
+    I = np.eye(2)
+
+    def kron_all(ops):
+        out = ops[0]
+        for op in ops[1:]:
+            out = np.kron(out, op)
+        return out
+
+    H = np.zeros((2**n, 2**n), dtype=float)
+
+    for i in range(n):
+        ops = [I] * n
+        ops[i] = sz
+        ops[(i + 1) % n] = sz
+        H += -J * kron_all(ops)
+
+    for i in range(n):
+        ops = [I] * n
+        ops[i] = sx
+        H += -h * kron_all(ops)
+
+    vals, vecs = np.linalg.eigh(H)
+    ground = vecs[:, 0]
+
+    magnetization_z = []
+    for i in range(n):
+        ops = [I] * n
+        ops[i] = sz
+        magnetization_z.append(float(np.vdot(ground, kron_all(ops) @ ground).real))
+
+    ops = [I] * n
+    ops[0] = sz
+    ops[1] = sz
+    zz_01 = float(np.vdot(ground, kron_all(ops) @ ground).real)
+
+    result = {
+        "model": "1d transverse-field quantum ising",
+        "run_id": os.environ["RUN_ID"],
+        "sites": n,
+        "coupling_J": J,
+        "field_h": h,
+        "boundary": "periodic",
+        "ground_energy": float(vals[0]),
+        "energy_gap": float(vals[1] - vals[0]),
+        "magnetization_z": magnetization_z,
+        "zz_correlation_0_1": zz_01,
+    }
+
+    with open("/tmp/result.json", "w") as f:
+        json.dump(result, f, indent=2)
+
+    minio_client = Minio(
+        os.environ["MINIO_ENDPOINT"],
+        access_key=os.environ["MINIO_ACCESS_KEY"],
+        secret_key=os.environ["MINIO_SECRET_KEY"],
+        secure=False,
     )
+
+    bucket = "research-artifacts"
+    object_name = os.environ["ARTIFACT_OBJECT_NAME"]
+
+    minio_client.fput_object(
+        bucket,
+        object_name,
+        "/tmp/result.json",
+        content_type="application/json",
+    )
+
+    print(f"uploaded: s3://{bucket}/{object_name}")
+    '''
+
+        shell_command = f"""pip install numpy minio
+
+    python - <<'PY'
+    {experiment_script}
+    PY
+    """
+
+        job = client.V1Job(
+            api_version="batch/v1",
+            kind="Job",
+            metadata=client.V1ObjectMeta(
+                name=job_name,
+                namespace="research",
+                labels={
+                    "app.kubernetes.io/name": "ising-1d-demo",
+                    "app.kubernetes.io/part-of": "research-fabric-lab",
+                    "research.fabric/run-id": run_id,
+                },
+            ),
+            spec=client.V1JobSpec(
+                backoff_limit=1,
+                template=client.V1PodTemplateSpec(
+                    metadata=client.V1ObjectMeta(
+                        labels={
+                            "app.kubernetes.io/name": "ising-1d-demo",
+                            "research.fabric/run-id": run_id,
+                        }
+                    ),
+                    spec=client.V1PodSpec(
+                        restart_policy="Never",
+                        containers=[
+                            client.V1Container(
+                                name="experiment",
+                                image="python:3.11-slim",
+                                command=["/bin/sh", "-c", shell_command],
+                                env=[
+                                    client.V1EnvVar(name="RUN_ID", value=run_id),
+                                    client.V1EnvVar(name="MINIO_ENDPOINT", value="minio.lab.local:80"),
+                                    client.V1EnvVar(name="ARTIFACT_OBJECT_NAME", value=object_name),
+                                    client.V1EnvVar(
+                                        name="MINIO_ACCESS_KEY",
+                                        value_from=client.V1EnvVarSource(
+                                            secret_key_ref=client.V1SecretKeySelector(
+                                                name="minio-credentials",
+                                                key="MINIO_ACCESS_KEY",
+                                            )
+                                        ),
+                                    ),
+                                    client.V1EnvVar(
+                                        name="MINIO_SECRET_KEY",
+                                        value_from=client.V1EnvVarSource(
+                                            secret_key_ref=client.V1SecretKeySelector(
+                                                name="minio-credentials",
+                                                key="MINIO_SECRET_KEY",
+                                            )
+                                        ),
+                                    ),
+                                ],
+                            )
+                        ],
+                    ),
+                ),
+            ),
+        )
+
+        config.load_incluster_config()
+        batch = client.BatchV1Api()
+        batch.create_namespaced_job(namespace="research", body=job)
+
+        return {
+            "job_name": job_name,
+            "run_id": run_id,
+            "artifact": f"s3://research-artifacts/{object_name}",
+        }, None
+
+    st.title("🧪 Research Fabric Lab")
+    st.subheader("v0.4.1-preview: AI-assisted Portal with Job Runner")
 
     col1, col2, col3 = st.columns(3)
 
@@ -168,7 +331,29 @@ data:
 
     st.divider()
 
-    st.header("Manual Experiment Draft")
+    st.header("Run Experiment")
+
+    st.markdown(
+        """
+        This button creates a Kubernetes Job on the workload cluster.
+
+        Current implementation runs a fixed `ising-1d-demo` experiment and stores the result under a unique run ID.
+        """
+    )
+
+    if st.button("Run ising-1d-demo Job"):
+        with st.spinner("Creating Kubernetes Job..."):
+            result, error = create_ising_job()
+
+        if error:
+            st.error(error)
+        else:
+            st.success("Job created.")
+            st.json(result)
+
+    st.divider()
+
+    st.header("Experiment Spec Preview")
 
     experiment_name = st.text_input("Experiment name", "ising-demo-001")
     runtime_image = st.text_input("Runtime image", "ghcr.io/yoshiyukikono/quantum-python-base:latest")
@@ -212,9 +397,10 @@ data:
     st.header("Platform Notes")
     st.markdown(
         """
-        - This portal generates Experiment specs.
-        - It does not submit jobs yet.
-        - The next step is GitHub PR generation or Experiment Operator integration.
+        - Generate: Research Goal → OpenAI → Experiment Spec
+        - Run: Portal → Kubernetes Job → MinIO Artifact
+        - Current Run button uses a fixed Ising demo job.
+        - Each run writes to a unique artifact path.
         """
     )
 

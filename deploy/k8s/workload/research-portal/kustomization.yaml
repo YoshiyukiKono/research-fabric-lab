@@ -7,6 +7,9 @@ resources:
   - deployment.yaml
   - service.yaml
   - ingress.yaml
+  - serviceaccount.yaml
+  - role.yaml
+  - rolebinding.yaml
 
 # Do not include secret-example.yaml in resources.
 # Create the real Secret manually:
