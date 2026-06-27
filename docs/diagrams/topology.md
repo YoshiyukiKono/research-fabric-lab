@@ -1,0 +1,26 @@
+# Topology Diagram
+
+```mermaid
+flowchart TD
+    Mac[Mac / Browser] -->|SSH / HTTP| Jump[Ubuntu Jump Host<br/>10.110.1.213]
+    Mac -->|Browser| Rancher[Rancher UI<br/>rancher.demo.local<br/>10.110.1.211]
+    Mac -->|Browser| Portal[Research Portal<br/>portal.agent.lab.local]
+    Mac -->|Browser| MinioConsole[MinIO Console<br/>console.minio.lab.local]
+
+    Jump -->|kubectl| K3s[workload-k3s<br/>10.110.1.212]
+    Rancher -->|manages| K3s
+
+    K3s --> Argo[Argo CD]
+    K3s --> AgentFabric[Agent Fabric Lab]
+    K3s --> ResearchFabric[Research Fabric Lab]
+
+    AgentFabric --> Ollama[Ollama]
+    AgentFabric --> Agents[Researcher / Architect / Reviewer]
+    AgentFabric --> Orchestrator[Orchestrator UI]
+
+    ResearchFabric --> CRD[Experiment / AgentTask CRDs]
+    ResearchFabric --> Jobs[Runtime Jobs]
+    ResearchFabric --> Portal
+    Jobs -->|write result.json| Minio[MinIO API<br/>minio.lab.local]
+    Minio --> Bucket[research-artifacts bucket]
+```
