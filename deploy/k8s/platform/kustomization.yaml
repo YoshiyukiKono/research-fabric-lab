@@ -1,5 +1,2 @@
 resources:
   - argocd-ingress.yaml
-
-patchesStrategicMerge:
-  - argocd-server-insecure-patch.yaml
