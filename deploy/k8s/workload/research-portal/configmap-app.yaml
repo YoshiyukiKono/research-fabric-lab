@@ -245,7 +245,7 @@ data:
                                 command=["/bin/sh", "-c", shell_command],
                                 env=[
                                     client.V1EnvVar(name="RUN_ID", value=run_id),
-                                    client.V1EnvVar(name="MINIO_ENDPOINT", value="minio.lab.local:80"),
+                                    client.V1EnvVar(name="MINIO_ENDPOINT", value="minio.storage.svc.cluster.local:9000"),
                                     client.V1EnvVar(name="ARTIFACT_OBJECT_NAME", value=object_name),
                                     client.V1EnvVar(
                                         name="MINIO_ACCESS_KEY",
