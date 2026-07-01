@@ -100,7 +100,7 @@ spec:
               PY
           env:
             - name: MINIO_ENDPOINT
-              value: minio.lab.local:80
+              value: minio.storage.svc.cluster.local:9000
             - name: MINIO_ACCESS_KEY
               valueFrom:
                 secretKeyRef:
